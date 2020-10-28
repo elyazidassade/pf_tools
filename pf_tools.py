@@ -111,25 +111,40 @@ def annualized_vol(returns, periods_per_year):
     """
     return returns.std()*np.sqrt(periods_per_year)
 
-def portfolio_return(returns, weights):
-    return np.round(np.dot(returns,weights),4)
+def portfolio_return(weights, returns):
+    return np.dot(returns,weights)
 
-def portfolio_volatility(returns, weights):
+
+def portfolio_volatility(weights, cov):
     """
     formula : portfolio volatility = weights.T * covariance matrix(returns) * weights
     """
-    covmat = returns.cov()
     w = np.array(weights)
-    return np.round(np.dot(w.transpose(),np.dot(covmat,w))**0.5,4)
+    return np.dot(np.dot(w.transpose(), cov),w)**0.5
 
 
+######################### Portfolio optimization ############################
+from scipy.optimize import minimize
 
-
-
-
-
-
-
+def minimize_volatility(target_return, er, covmat):
+    N = er.shape[0]
+    w0 = np.repeat(1/N,N)
+    
+    bounds = [[0,1]]*N
+    
+    sum_weights_is_1 = {'type' : 'eq', 'fun': lambda weights: weights.sum()-1}
+    ret_equal_target = {'type' : 'eq', 'args':(er,), 'fun': lambda weights, er : target_return - portfolio_return(weights, er)}
+    
+    weights = minimize(portfolio_volatility, x0=w0, args=(covmat,),
+                       constraints=(sum_weights_is_1, ret_equal_target),
+                       bounds=bounds, method='SLSQP')
+    
+    return np.round(weights.x,5)
+    
+    
+    
+    
+    
 
 
 
